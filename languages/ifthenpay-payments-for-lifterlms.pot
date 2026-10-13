@@ -1,0 +1,572 @@
+# Copyright (C) 2026 ifthenpay
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: ifthenpay Payments for LifterLMS 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/ifthenpay-payments-for-lifterlms\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-13T14:49:15+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: ifthenpay-payments-for-lifterlms\n"
+
+#. Plugin Name of the plugin
+#: ifthenpay-payments-for-lifterlms.php
+msgid "ifthenpay Payments for LifterLMS"
+msgstr ""
+
+#. Plugin URI of the plugin
+#. Author URI of the plugin
+#: ifthenpay-payments-for-lifterlms.php
+msgid "https://ifthenpay.com"
+msgstr ""
+
+#. Description of the plugin
+#: ifthenpay-payments-for-lifterlms.php
+msgid "Adds ifthenpay Pay by Link (Multibanco, MB WAY, card, Apple Pay, Google Pay, Pix, Payshop, Cofidis) to LifterLMS's native checkout, with orders confirmed by ifthenpay's callback."
+msgstr ""
+
+#. Author of the plugin
+#: ifthenpay-payments-for-lifterlms.php
+#: src/Admin/OrderDisplay.php:92
+msgid "ifthenpay"
+msgstr ""
+
+#: ifthenpay-payments-for-lifterlms.php:43
+msgid "ifthenpay Payments for LifterLMS needs LifterLMS installed and active."
+msgstr ""
+
+#: ifthenpay-payments-for-lifterlms.php:56
+msgid "ifthenpay Payments for LifterLMS could not load its classes. Run \"composer install\" in the plugin folder."
+msgstr ""
+
+#. translators: 1: the store currency code, e.g. USD. 2: link to LifterLMS's Checkout Settings.
+#: src/Admin/Notices.php:76
+#, php-format
+msgid "ifthenpay only takes payments in euros, and your LifterLMS currency is %1$s, so students won't see ifthenpay at checkout. Change the currency to Euro in %2$s."
+msgstr ""
+
+#: src/Admin/Notices.php:78
+#: src/Admin/SettingsPanel.php:193
+msgid "Checkout Settings"
+msgstr ""
+
+#: src/Admin/Notices.php:95
+msgid "ifthenpay couldn't register this site's callback URL yet, so paid orders won't complete automatically. This page retries at most every 15 minutes. If it keeps failing, contact ifthenpay support."
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:95
+msgid "No ifthenpay payment link was created for this order yet."
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:118
+msgid "Reference:"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:123
+msgid "Status:"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:128
+msgid "Method:"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:135
+msgid "Not chosen yet"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:140
+msgid "Request ID:"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:144
+msgid "Not available"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:150
+msgid "Payment link:"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:152
+msgid "Open link"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:152
+msgid "(opens in a new tab)"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:153
+msgid "Copied"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:153
+msgid "Copy link"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:160
+msgid "Link expires:"
+msgstr ""
+
+#. translators: %d: number of older ifthenpay payment attempts for this order.
+#: src/Admin/OrderDisplay.php:172
+#, php-format
+msgid "This order has %d earlier ifthenpay attempt."
+msgid_plural "This order has %d earlier ifthenpay attempts."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/OrderDisplay.php:195
+msgid "This order is waiting for payment. Continue to ifthenpay to pay for it."
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:198
+msgid "Pay now"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:223
+msgid "This order can't be paid right now. Reload the page and try again."
+msgstr ""
+
+#. translators: %s: the error ifthenpay (or the plugin) reported.
+#: src/Admin/OrderDisplay.php:234
+#, php-format
+msgid "Pay now: could not get an ifthenpay payment link: %s"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:240
+msgid "We couldn't start your ifthenpay payment. Please try again in a moment."
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:308
+msgid "Pending"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:309
+msgid "Paid"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:310
+msgid "Failed"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:311
+msgid "Cancelled"
+msgstr ""
+
+#: src/Admin/OrderDisplay.php:312
+msgid "Expired"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:163
+#: src/Admin/SettingsPanel.php:346
+#: src/Admin/SettingsPanel.php:543
+msgid "Connect"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:164
+msgid "Connecting…"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:165
+#: src/Admin/SettingsPanel.php:339
+#: src/Admin/SettingsPanel.php:566
+msgid "Disconnect"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:166
+msgid "Disconnecting…"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:167
+msgid "Enter your Backoffice Key."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:168
+msgid "We couldn't reach ifthenpay. Check your connection and try again."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:169
+msgid "Connected to ifthenpay"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:170
+msgid "Loading payment methods…"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:171
+msgid "Saving…"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:172
+msgid "All changes saved"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:173
+msgid "We couldn't save your ifthenpay changes. Check your connection and try again."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:174
+msgid "Your ifthenpay changes are still being saved."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:175
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:176
+msgid "Requesting…"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:177
+#: src/Admin/SettingsPanel.php:490
+msgid "Requested"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:178
+msgid "Activation request sent. ifthenpay will get back to you shortly."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:179
+msgid "The activation request couldn't be sent. Please try again."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:180
+msgid "Choose a Gateway Key to finish setting up ifthenpay. Until then, students won't see it at checkout."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:181
+msgid "Enable at least one payment method. Until then, students won't see ifthenpay at checkout."
+msgstr ""
+
+#. translators: %s: link to LifterLMS's Checkout Settings, labelled "Checkout Settings".
+#: src/Admin/SettingsPanel.php:192
+#, php-format
+msgid "ifthenpay only takes payments in euros. Change the currency to Euro in %s to show ifthenpay at checkout."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:258
+msgid "ifthenpay account"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:264
+msgid "These ifthenpay settings save automatically. The settings above save with Save Changes."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:275
+#: src/Admin/SettingsPanel.php:409
+msgid "Account"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:283
+msgid "Gateway Key"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:289
+msgid "The ifthenpay Gateway Key used for LifterLMS. Changing it reloads the payment methods below."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:293
+msgid "Payment methods"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:299
+msgid "Payment page description"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:302
+msgid "Shown to the student on the ifthenpay payment page. Leave empty to use your site name."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:306
+msgid "Expiry days"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:309
+msgid "How many days an unpaid payment link stays valid. After that, the payment is marked as expired."
+msgstr ""
+
+#. translators: %d: the most days a payment link can stay valid.
+#: src/Admin/SettingsPanel.php:315
+#, php-format
+msgid "Enter a whole number of days from 1 to %d."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:337
+msgid "Connected"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:345
+msgid "Not connected"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:348
+msgid "Connect your ifthenpay account to load your Gateway Keys and payment methods."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:366
+msgid "No LifterLMS Gateway Key found. Ask ifthenpay to create one."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:370
+msgid "Choose a Gateway Key"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:390
+msgid "Choose a Gateway Key to see its payment methods."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:394
+msgid "No payment methods found for this Gateway Key."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:403
+msgid "Payment methods for this Gateway Key"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:406
+msgid "Enabled"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:407
+msgid "Default method"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:408
+msgid "Method"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:419
+msgid "Star an enabled method to pre-select it on the ifthenpay payment page."
+msgstr ""
+
+#. translators: %s: payment method name.
+#: src/Admin/SettingsPanel.php:448
+#, php-format
+msgid "Enable %s"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:466
+msgid "Set as default payment method"
+msgstr ""
+
+#. translators: %s: payment method name.
+#: src/Admin/SettingsPanel.php:468
+#, php-format
+msgid "Make %s the default payment method"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:488
+msgid "Not activated"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:490
+msgid "Request activation"
+msgstr ""
+
+#. translators: %s: payment method name.
+#: src/Admin/SettingsPanel.php:490
+#, php-format
+msgid "for %s"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:528
+msgid "Connect to ifthenpay"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:530
+#: src/Admin/SettingsPanel.php:556
+msgid "Close"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:535
+msgid "Paste the Backoffice Key from your ifthenpay account. We use it to load your Gateway Keys and payment methods. It's never shown again on this page."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:536
+msgid "Backoffice Key"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:538
+msgid "The 16-digit key from your ifthenpay Backoffice."
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:542
+#: src/Admin/SettingsPanel.php:565
+msgid "Cancel"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:554
+msgid "Disconnect ifthenpay?"
+msgstr ""
+
+#: src/Admin/SettingsPanel.php:561
+msgid "This removes the Backoffice Key, Gateway Key and payment method choices saved here. Students won't see ifthenpay at checkout until you connect again. Existing LifterLMS orders and their payments stay as they are."
+msgstr ""
+
+#: src/Ajax/Controller.php:100
+msgid "That doesn't look like a Backoffice Key. It has the format 0000-0000-0000-0000."
+msgstr ""
+
+#: src/Ajax/Controller.php:104
+msgid "ifthenpay didn't return any LifterLMS Gateway Key for this Backoffice Key. Check the key, or ask ifthenpay to create a LifterLMS Gateway Key."
+msgstr ""
+
+#: src/Ajax/Controller.php:130
+msgid "That Gateway Key isn't available for your Backoffice Key anymore. Reload the page and try again."
+msgstr ""
+
+#: src/Ajax/Controller.php:183
+msgid "Choose a Gateway Key and a payment method first."
+msgstr ""
+
+#: src/Ajax/Controller.php:187
+msgid "Activation for this method was already requested. Please wait 24 hours before asking again."
+msgstr ""
+
+#: src/Ajax/Controller.php:205
+msgid "The activation request could not be sent. Please try again."
+msgstr ""
+
+#: src/Ajax/Controller.php:268
+msgid "You are not allowed to do this."
+msgstr ""
+
+#: src/Ajax/Controller.php:277
+msgid "Connect your Backoffice Key first."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:43
+msgid "Take one-off payments with ifthenpay Pay by Link: Multibanco, MB WAY, card, Apple Pay, Google Pay and more. Orders complete when ifthenpay confirms the payment."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:45
+msgid "Pay with Multibanco, MB WAY, card, Apple Pay or Google Pay."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:153
+msgid "Free"
+msgstr ""
+
+#. translators: %s: the error ifthenpay (or the plugin) reported.
+#: src/Gateway/IfthenpayGateway.php:175
+#, php-format
+msgid "Could not create the ifthenpay payment link: %s"
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:180
+msgid "We couldn't start your ifthenpay payment. Please try again in a moment, or choose another payment method."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:204
+msgid "This order is not waiting for a payment."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:219
+msgid "ifthenpay is not fully configured (Backoffice Key, Gateway Key, an enabled method and a EUR store)."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:225
+msgid "The order total must be above zero."
+msgstr ""
+
+#: src/Gateway/IfthenpayGateway.php:248
+msgid "ifthenpay did not return a payment link."
+msgstr ""
+
+#. translators: %s: transaction reference.
+#: src/Gateway/IfthenpayGateway.php:256
+#, php-format
+msgid "ifthenpay payment link created (ref %s)."
+msgstr ""
+
+#: src/Gateway/ReturnHandler.php:119
+msgid "We're waiting for ifthenpay to confirm your payment. Your order completes automatically as soon as it does."
+msgstr ""
+
+#. translators: %s: transaction reference.
+#: src/Gateway/ReturnHandler.php:149
+#, php-format
+msgid "The student cancelled the ifthenpay payment (ref %s). The order stays pending."
+msgstr ""
+
+#. translators: %s: transaction reference.
+#: src/Gateway/ReturnHandler.php:151
+#, php-format
+msgid "The ifthenpay payment did not go through (ref %s). The order stays pending."
+msgstr ""
+
+#: src/Gateway/ReturnHandler.php:159
+msgid "You cancelled the payment, so your order is still waiting for it."
+msgstr ""
+
+#: src/Gateway/ReturnHandler.php:160
+msgid "The payment didn't go through, so your order is still waiting for it."
+msgstr ""
+
+#: src/Gateway/ReturnHandler.php:166
+msgid "Try again"
+msgstr ""
+
+#: src/Methods.php:99
+msgid "Multibanco"
+msgstr ""
+
+#: src/Methods.php:100
+msgid "MB WAY"
+msgstr ""
+
+#: src/Methods.php:101
+msgid "Payshop"
+msgstr ""
+
+#: src/Methods.php:102
+msgid "Credit card"
+msgstr ""
+
+#: src/Methods.php:103
+msgid "Google Pay"
+msgstr ""
+
+#: src/Methods.php:104
+msgid "Apple Pay"
+msgstr ""
+
+#: src/Methods.php:105
+msgid "Pix"
+msgstr ""
+
+#: src/Methods.php:106
+msgid "Cofidis Pay"
+msgstr ""
+
+#. translators: 1: transaction reference, 2: payment method, 3: ifthenpay request id.
+#: src/Payments/OrderPayment.php:57
+#, php-format
+msgid "ifthenpay confirmed the payment (ref %1$s, %2$s, request %3$s)."
+msgstr ""
+
+#. translators: %s: transaction reference.
+#: src/Payments/OrderPayment.php:68
+#, php-format
+msgid "This order was already paid before ref %s was confirmed, so the student may have paid twice. Check and refund manually if needed."
+msgstr ""
+
+#: src/Settings/SettingsRepository.php:176
+msgid "Course purchase"
+msgstr ""
+
+#. translators: %s: transaction reference.
+#: src/Webhook/WebhookController.php:245
+#, php-format
+msgid "ifthenpay reported the payment as cancelled (ref %s). The order stays pending, so the student can try again."
+msgstr ""
+
+#. translators: %s: transaction reference.
+#: src/Webhook/WebhookController.php:247
+#, php-format
+msgid "ifthenpay reported the payment as failed (ref %s). The order stays pending, so the student can try again."
+msgstr ""

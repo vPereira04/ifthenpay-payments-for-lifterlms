@@ -1,0 +1,605 @@
+/**
+ * The ifthenpay panel in LifterLMS › Settings › Checkout › ifthenpay, its dialogs, and the
+ * ifthenpay box on the LifterLMS order screen.
+ *
+ * Inputs, buttons, the table and the dialog header reuse LifterLMS's own classes (form-table,
+ * llms-button-*, llms-table, llms-modal-header/content); this file only adds what the host
+ * has no equivalent for, and a focus ring on our own button instances.
+ */
+
+.iftp-llms-contract,
+.iftp-llms-contract__config,
+.iftp-llms-modal,
+.iftp-llms-order-box {
+	--iftp-llms-host-primary: #466dd8;
+	--iftp-llms-host-primary-hover: #2b55cb;
+	--iftp-llms-border: #c3c4c7;
+	--iftp-llms-text: #1d2327;
+	--iftp-llms-text-muted: #50575e;
+	--iftp-llms-success: #00a32a;
+	--iftp-llms-error: #b32d2e;
+	--iftp-llms-star: #996800;
+	--iftp-llms-star-empty: #646970;
+	--iftp-llms-pill-bg: #f0f0f1;
+	--iftp-llms-overlay: rgb(0 0 0 / 60%);
+	--iftp-llms-radius: 8px;
+	--iftp-llms-focus: 2px solid #466dd8;
+}
+
+/* Panel head: subtitle on the left, save state on the right. The host zeroes colspan cells' top padding. */
+.iftp-llms-contract .iftp-llms-contract__head-row td {
+	padding-top: 24px;
+}
+
+.iftp-llms-contract__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.iftp-llms-contract .iftp-llms-contract__title {
+	margin: 0;
+}
+
+.iftp-llms-contract__readiness-row[hidden],
+.iftp-llms-contract__config[hidden] {
+	display: none;
+}
+
+.iftp-llms-contract .iftp-llms-contract__readiness {
+	margin: 0;
+}
+
+.iftp-llms-save-state {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 20px;
+	color: var(--iftp-llms-text-muted);
+	font-size: 13px;
+}
+
+.iftp-llms-save-state__icon {
+	display: none;
+	width: 16px;
+	height: 16px;
+	font: normal 16px/1 dashicons;
+	speak: never;
+}
+
+.iftp-llms-save-state[data-state="saving"] .iftp-llms-save-state__icon {
+	display: inline-block;
+	box-sizing: border-box;
+	border: 2px solid var(--iftp-llms-border);
+	border-top-color: var(--iftp-llms-text-muted);
+	border-radius: 50%;
+	animation: iftp-llms-spin 0.8s linear infinite;
+}
+
+.iftp-llms-save-state[data-state="saved"] .iftp-llms-save-state__icon {
+	display: inline-block;
+	color: var(--iftp-llms-success);
+}
+
+.iftp-llms-save-state[data-state="saved"] .iftp-llms-save-state__icon::before {
+	content: "\f147";
+}
+
+.iftp-llms-save-state[data-state="error"] {
+	color: var(--iftp-llms-error);
+}
+
+.iftp-llms-save-state[data-state="error"] .iftp-llms-save-state__icon {
+	display: inline-block;
+}
+
+.iftp-llms-save-state[data-state="error"] .iftp-llms-save-state__icon::before {
+	content: "\f534";
+}
+
+@keyframes iftp-llms-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Account row. */
+
+.iftp-llms-connection {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+.iftp-llms-connection__state {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--iftp-llms-text);
+	font-weight: 600;
+}
+
+.iftp-llms-connection__state--off {
+	color: var(--iftp-llms-text-muted);
+}
+
+.iftp-llms-connection__icon {
+	width: 20px;
+	height: 20px;
+	color: var(--iftp-llms-success);
+	font-size: 20px;
+}
+
+.iftp-llms-contract__spinner {
+	float: none;
+	margin: 0 0 0 8px;
+	vertical-align: middle;
+}
+
+.iftp-llms-contract__empty {
+	margin: 0;
+	color: var(--iftp-llms-text-muted);
+}
+
+.iftp-llms-contract .iftp-llms-contract__expiry,
+.iftp-llms-contract__config .iftp-llms-contract__expiry {
+	min-width: 80px;
+}
+
+.iftp-llms-contract__field-error,
+.iftp-llms-modal__message {
+	margin: 4px 0 0;
+	color: var(--iftp-llms-error);
+	font-size: 13px;
+}
+
+.iftp-llms-contract__field-error[hidden] {
+	display: none;
+}
+
+/* Our instances of LifterLMS's buttons only: the host's focus background drops white text to 3.4:1 and has no ring. */
+.iftp-llms-contract .llms-button-primary:is(:focus, :active),
+.iftp-llms-contract__config .llms-button-primary:is(:focus, :active),
+.iftp-llms-modal .llms-button-primary:is(:focus, :active) {
+	background: var(--iftp-llms-host-primary-hover);
+}
+
+.iftp-llms-contract :is(.llms-button-primary, .llms-button-secondary, .llms-button-danger):focus-visible,
+.iftp-llms-contract__config :is(.llms-button-primary, .llms-button-secondary, .llms-button-danger):focus-visible,
+.iftp-llms-modal :is(.llms-button-primary, .llms-button-secondary, .llms-button-danger):focus-visible {
+	outline: var(--iftp-llms-focus);
+	outline-offset: 2px;
+}
+
+/* Methods table. */
+
+.iftp-llms-methods-wrap {
+	max-width: 100%;
+}
+
+.iftp-llms-methods-wrap:focus-visible {
+	outline: var(--iftp-llms-focus);
+	outline-offset: 2px;
+}
+
+#iftp-llms-methods[aria-busy="true"] .iftp-llms-methods-wrap {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.iftp-llms-methods td {
+	vertical-align: middle;
+}
+
+/* Enabled + Default shrink to their single control and read as one group, closed off by a divider. */
+.iftp-llms-methods .iftp-llms-methods__control {
+	width: 1%;
+	white-space: nowrap;
+	text-align: center;
+}
+
+.iftp-llms-methods .iftp-llms-methods__control--enabled {
+	border-right: 1px solid var(--iftp-llms-border);
+}
+
+.iftp-llms-methods__method {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+/* A fixed slot, so every label starts at the same x whatever the logo's shape. */
+.iftp-llms-methods__logo-slot {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 66px;
+}
+
+/* The card-network mark is ~3x wider than the square marks: capping the width keeps it as is while the height lifts the rest. */
+.iftp-llms-methods__logo {
+	max-width: 66px;
+	max-height: 25px;
+}
+
+.iftp-llms-methods__pill {
+	display: inline-block;
+	height: 24px;
+	padding: 0 10px;
+	border-radius: 12px;
+	background: var(--iftp-llms-pill-bg);
+	color: var(--iftp-llms-text);
+	font-family: Menlo, Consolas, monospace;
+	font-size: 12px;
+	line-height: 24px;
+	white-space: nowrap;
+}
+
+.iftp-llms-methods__activation {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.iftp-llms-methods__status {
+	color: var(--iftp-llms-text-muted);
+	font-style: italic;
+	white-space: nowrap;
+}
+
+/* Unprovisioned rows dim their label and status, never the Request activation button. */
+.iftp-llms-methods__row--off .iftp-llms-methods__enabled,
+.iftp-llms-methods__row--off .iftp-llms-methods__method,
+.iftp-llms-methods__row--off .iftp-llms-methods__status {
+	opacity: 0.5;
+}
+
+/* Default-method star. */
+
+.iftp-llms-star {
+	display: inline-flex;
+	padding: 2px;
+	cursor: pointer;
+}
+
+.iftp-llms-star__icon {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+}
+
+.iftp-llms-star .dashicons-star-filled {
+	color: var(--iftp-llms-star);
+}
+
+.iftp-llms-star .dashicons-star-empty {
+	color: var(--iftp-llms-star-empty);
+}
+
+.iftp-llms-methods input:focus-visible + .iftp-llms-star {
+	border-radius: 4px;
+	outline: var(--iftp-llms-focus);
+	outline-offset: 2px;
+}
+
+/* visibility, not display, so the column keeps its width as rows toggle. */
+.iftp-llms-star--hidden {
+	visibility: hidden;
+}
+
+@keyframes iftp-llms-star-wink {
+	0% {
+		transform: scale(1) rotate(0deg);
+	}
+
+	35% {
+		transform: scale(1.35) rotate(-15deg);
+	}
+
+	65% {
+		transform: scale(0.9) rotate(10deg);
+	}
+
+	100% {
+		transform: scale(1) rotate(0deg);
+	}
+}
+
+.iftp-llms-star--wink .iftp-llms-star__icon {
+	display: inline-block;
+	animation: iftp-llms-star-wink 0.4s ease-in-out;
+}
+
+/* Dialogs (Connect, Disconnect). */
+
+.iftp-llms-modal {
+	display: flex;
+	position: fixed;
+	z-index: 100000;
+	inset: 0;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+}
+
+.iftp-llms-modal[hidden] {
+	display: none;
+}
+
+html:has(.iftp-llms-modal:not([hidden])) {
+	overflow: hidden;
+}
+
+.iftp-llms-modal__overlay {
+	position: absolute;
+	inset: 0;
+	background: var(--iftp-llms-overlay);
+	animation: iftp-llms-fade 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.iftp-llms-modal__dialog {
+	display: flex;
+	position: relative;
+	flex-direction: column;
+	width: min(480px, 100%);
+	max-height: calc(100vh - 48px);
+	overflow: hidden auto;
+	border-radius: var(--iftp-llms-radius);
+	background: #fff;
+	box-shadow: 0 24px 48px -12px rgb(0 0 0 / 30%);
+	color: var(--iftp-llms-text);
+	animation: iftp-llms-lift 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* #eee on the host's blue is 4.07:1; white passes. */
+.iftp-llms-modal .iftp-llms-modal__header {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	color: #fff;
+}
+
+.iftp-llms-modal .iftp-llms-modal__title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	color: inherit;
+	font-size: 18px;
+	line-height: 1.3;
+}
+
+.iftp-llms-modal__icon {
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	object-fit: contain;
+}
+
+.iftp-llms-modal__close {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: #fff;
+	cursor: pointer;
+}
+
+.iftp-llms-modal__close:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 0;
+}
+
+.iftp-llms-modal__body {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.iftp-llms-modal__body p {
+	margin: 0;
+}
+
+.iftp-llms-modal__body p + .iftp-llms-modal__label {
+	margin-top: 10px;
+}
+
+.iftp-llms-modal__label {
+	font-weight: 600;
+}
+
+.iftp-llms-modal .iftp-llms-modal__input {
+	width: 100%;
+	font-family: Menlo, Consolas, monospace;
+}
+
+.iftp-llms-modal__message:empty {
+	display: none;
+}
+
+.iftp-llms-modal__message::before {
+	margin-right: 4px;
+	font: normal 16px/1 dashicons;
+	vertical-align: text-bottom;
+	content: "\f534";
+	speak: never;
+}
+
+.iftp-llms-modal__footer {
+	display: flex;
+	flex-shrink: 0;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 0 20px 20px;
+}
+
+@keyframes iftp-llms-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes iftp-llms-lift {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+}
+
+/* The ifthenpay box on the LifterLMS order screen. */
+
+.iftp-llms-order-box__label {
+	display: block;
+	margin-bottom: 5px;
+	color: #1e1e1e;
+	font-size: 14px;
+}
+
+.iftp-llms-order-box__ref {
+	font-family: Menlo, Consolas, monospace;
+	font-size: 13px;
+	overflow-wrap: anywhere;
+}
+
+.iftp-llms-order-box__method {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.iftp-llms-order-box__logo {
+	max-width: 48px;
+	max-height: 20px;
+}
+
+.iftp-llms-order-box__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.iftp-llms-order-box__muted {
+	color: var(--iftp-llms-text-muted);
+}
+
+.iftp-llms-order-box__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 10px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+}
+
+.iftp-llms-order-box__badge::before {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #8c8f94;
+	content: "";
+}
+
+.iftp-llms-order-box__badge--pending {
+	background: #fef8ec;
+	color: #7c4a00;
+}
+
+.iftp-llms-order-box__badge--pending::before {
+	background: #dba617;
+}
+
+.iftp-llms-order-box__badge--paid {
+	background: #edf7f0;
+	color: #0f6b2f;
+}
+
+.iftp-llms-order-box__badge--paid::before {
+	background: #00a32a;
+}
+
+.iftp-llms-order-box__badge--failed,
+.iftp-llms-order-box__badge--cancelled {
+	background: #fff5f4;
+	color: #8b1a1c;
+}
+
+.iftp-llms-order-box__badge--failed::before,
+.iftp-llms-order-box__badge--cancelled::before {
+	background: #d63638;
+}
+
+@media (max-width: 782px) {
+	/* width 0 + min-width 100% keeps the host's auto-layout form-table from growing to our table's width, so this scrolls instead. */
+	.iftp-llms-methods-wrap {
+		width: 0;
+		min-width: 100%;
+		padding: 2px;
+		overflow-x: auto;
+		box-sizing: border-box;
+	}
+
+	/* Core stacks every `.form-table td` here, nested tables included; ours stays a table. */
+	.form-table .iftp-llms-methods th,
+	.form-table .iftp-llms-methods td {
+		display: table-cell;
+		padding: 8px;
+	}
+
+	.form-table .iftp-llms-methods .iftp-llms-methods__control {
+		width: 1%;
+	}
+
+	.iftp-llms-methods__logo-slot {
+		width: 48px;
+	}
+
+	.iftp-llms-methods__logo {
+		max-width: 48px;
+	}
+}
+
+@media (max-width: 600px) {
+	.iftp-llms-modal__footer {
+		flex-direction: column;
+	}
+
+	.iftp-llms-modal__footer > * {
+		width: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.iftp-llms-star--wink .iftp-llms-star__icon,
+	.iftp-llms-modal__overlay,
+	.iftp-llms-modal__dialog,
+	.iftp-llms-save-state[data-state="saving"] .iftp-llms-save-state__icon {
+		animation: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.iftp-llms-methods__pill,
+	.iftp-llms-modal__dialog,
+	.iftp-llms-order-box__badge {
+		border: 1px solid CanvasText;
+	}
+}
