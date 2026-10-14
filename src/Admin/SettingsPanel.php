@@ -36,6 +36,10 @@ final class SettingsPanel {
 
 	public const HANDLE = 'iftp-llms-admin';
 
+	private const DOCS_URL = 'https://github.com/vPereira04/ifthenpay-payments-for-lifterlms';
+
+	private const DOCS_HANDLE = 'iftp-llms-gateway-docs';
+
 	private const SETTINGS_PAGE = 'llms-settings';
 	private const SETTINGS_TAB  = 'checkout';
 	private const HOOK_SUFFIX   = 'lifterlms_page_llms-settings';
@@ -70,6 +74,7 @@ final class SettingsPanel {
 	public function register(): void {
 		add_action( 'lifterlms_admin_field_' . IfthenpayGateway::CONTRACT_FIELD, array( $this, 'render_field' ), 10, 0 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_docs_link' ) );
 		add_action( 'admin_footer', array( $this, 'render_dialogs' ), 10, 0 );
 		add_filter( 'iftp_llms_settings_state', array( $this, 'add_fragments' ) );
 	}
@@ -87,6 +92,22 @@ final class SettingsPanel {
 		return self::SETTINGS_PAGE === $page
 			&& self::SETTINGS_TAB === $tab
 			&& Plugin::GATEWAY_ID === $section
+			&& current_user_can( Plugin::admin_cap() );
+	}
+
+	/**
+	 * Whether this is LifterLMS's main Checkout section, with the gateways table.
+	 */
+	private static function is_checkout_main_screen(): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- only picks which screen loads the script.
+		$page    = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		$tab     = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'main';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		return self::SETTINGS_PAGE === $page
+			&& self::SETTINGS_TAB === $tab
+			&& 'main' === $section
 			&& current_user_can( Plugin::admin_cap() );
 	}
 
@@ -151,6 +172,63 @@ final class SettingsPanel {
 				'i18n'       => $this->strings(),
 			)
 		);
+	}
+
+	/**
+	 * Fills our row's Documentation cell in the gateways table. LifterLMS has no filter for it.
+	 *
+	 * @param string $hook_suffix The admin page hook.
+	 */
+	public function enqueue_docs_link( $hook_suffix ): void {
+		if ( self::HOOK_SUFFIX !== $hook_suffix || ! self::is_checkout_main_screen() ) {
+			return;
+		}
+
+		// No file of its own: a few static lines, with the URL and label passed as data.
+		wp_register_script( self::DOCS_HANDLE, false, array(), IFTP_LLMS_VERSION, true );
+		wp_enqueue_script( self::DOCS_HANDLE );
+		wp_localize_script(
+			self::DOCS_HANDLE,
+			'iftpLlmsDocs',
+			array(
+				'gatewayId' => Plugin::GATEWAY_ID,
+				'url'       => self::DOCS_URL,
+				'label'     => __( 'View Docs', 'ifthenpay-payments-for-lifterlms' ),
+			)
+		);
+		wp_add_inline_script( self::DOCS_HANDLE, self::docs_link_script() );
+	}
+
+	/**
+	 * Swaps the dash in our row's last cell for a link, matching LifterLMS's own.
+	 */
+	private static function docs_link_script(): string {
+		return <<<'JS'
+( function () {
+	'use strict';
+
+	var cfg = window.iftpLlmsDocs || {};
+	var links = document.querySelectorAll( '.llms-gateway-table tbody td a[href*="section="]' );
+
+	Array.prototype.forEach.call( links, function ( link ) {
+		var url = new URL( link.href, window.location.href );
+		var cell;
+		var docs;
+
+		if ( url.searchParams.get( 'section' ) !== cfg.gatewayId ) {
+			return;
+		}
+
+		cell = link.closest( 'tr' ).lastElementChild;
+		docs = document.createElement( 'a' );
+		docs.href = cfg.url;
+		docs.target = '_blank';
+		docs.rel = 'noopener noreferrer';
+		docs.textContent = cfg.label;
+		cell.replaceChildren( docs );
+	} );
+}() );
+JS;
 	}
 
 	/**

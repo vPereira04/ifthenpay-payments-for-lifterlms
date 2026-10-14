@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Ifthenpay\LifterLMS\Payments;
 
+use Ifthenpay\LifterLMS\Api\IfthenpayClient;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -45,7 +47,7 @@ final class PaymentAttempts {
 	// Oldest unpaid attempts beyond this are dropped, so a student retrying forever can't grow the meta.
 	private const MAX_ATTEMPTS = 20;
 
-	private const LOCK_PREFIX = 'iftp_llms_paid_lock_';
+	private const LOCK_PREFIX = 'iftp_llms_lock_';
 	private const LOCK_TTL    = 5 * MINUTE_IN_SECONDS;
 
 	/**
@@ -183,16 +185,54 @@ final class PaymentAttempts {
 	}
 
 	/**
-	 * Claims the right to record a ref's payment. Only one concurrent callback wins: the claim is an
-	 * INSERT on the options table's unique option_name. A stale claim (a crashed request) is reclaimed.
+	 * A live attempt on another of the student's pending orders for the same course or membership, or null.
+	 * Two access plans of one course are two orders, so I check across them.
 	 *
-	 * @param string $ref The transaction reference.
+	 * @param int $user_id         The student.
+	 * @param int $product_id      The course or membership.
+	 * @param int $except_order_id The order being paid now.
+	 * @return Attempt|null
+	 */
+	public function live_for_product( int $user_id, int $product_id, int $except_order_id ): ?array {
+		$student = $user_id > 0 && $product_id > 0 && function_exists( 'llms_get_student' ) ? llms_get_student( $user_id ) : null;
+
+		if ( ! $student instanceof \LLMS_Student ) {
+			return null;
+		}
+
+		$found = $student->get_orders(
+			array(
+				'statuses' => array( 'llms-pending' ),
+				'count'    => self::MAX_ATTEMPTS,
+			)
+		);
+
+		foreach ( (array) ( $found['orders'] ?? array() ) as $order_id => $order ) {
+			if ( (int) $order_id === $except_order_id || ! $order instanceof \LLMS_Order || (int) $order->get( 'product_id' ) !== $product_id ) {
+				continue;
+			}
+
+			$current = $this->current( (int) $order_id );
+
+			if ( null !== $current && self::is_live( $current ) ) {
+				return $current;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Claims a short lock on a key: a ref's payment, or a student's new link. Only one concurrent request
+	 * wins: the claim is an INSERT on the options table's unique option_name. A stale claim (a crashed request) is reclaimed.
+	 *
+	 * @param string $key What to lock.
 	 * @return bool Whether this request holds the claim.
 	 */
-	public function claim( string $ref ): bool {
+	public function claim( string $key ): bool {
 		global $wpdb;
 
-		$name = self::lock_name( $ref );
+		$name = self::lock_name( $key );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- an atomic lock; add_option() can't report a lost race.
 		$won = (int) $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", $name, (string) time() ) );
@@ -216,13 +256,25 @@ final class PaymentAttempts {
 	/**
 	 * Releases a claim.
 	 *
-	 * @param string $ref The transaction reference.
+	 * @param string $key What was locked.
 	 */
-	public function release( string $ref ): void {
+	public function release( string $key ): void {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the lock row was written directly too.
-		$wpdb->delete( $wpdb->options, array( 'option_name' => self::lock_name( $ref ) ) );
+		$wpdb->delete( $wpdb->options, array( 'option_name' => self::lock_name( $key ) ) );
+	}
+
+	/**
+	 * Whether an attempt's link can still be paid. ifthenpay can't revoke a link, so this holds until it's paid,
+	 * reported failed or cancelled, or expires.
+	 *
+	 * @param array<string, mixed> $attempt The attempt.
+	 * @phpstan-param Attempt $attempt
+	 */
+	public static function is_live( array $attempt ): bool {
+		return self::STATUS_PENDING === self::display_status( $attempt )
+			&& IfthenpayClient::is_payment_url( $attempt['payment_url'] );
 	}
 
 	/**
@@ -336,9 +388,9 @@ final class PaymentAttempts {
 	/**
 	 * The lock's option name.
 	 *
-	 * @param string $ref The transaction reference.
+	 * @param string $key What is locked.
 	 */
-	private static function lock_name( string $ref ): string {
-		return self::LOCK_PREFIX . md5( $ref );
+	private static function lock_name( string $key ): string {
+		return self::LOCK_PREFIX . md5( $key );
 	}
 }

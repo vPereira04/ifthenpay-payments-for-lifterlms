@@ -18,7 +18,7 @@
 	--iftp-llms-text-muted: #50575e;
 	--iftp-llms-success: #00a32a;
 	--iftp-llms-error: #b32d2e;
-	--iftp-llms-star: #996800;
+	--iftp-llms-star: #dba617;
 	--iftp-llms-star-empty: #646970;
 	--iftp-llms-pill-bg: #f0f0f1;
 	--iftp-llms-overlay: rgb(0 0 0 / 60%);
@@ -185,30 +185,46 @@
 	outline-offset: 2px;
 }
 
+/* Hugs its content instead of stretching across the row, so Method and Account sit together. */
+.iftp-llms-contract .iftp-llms-methods,
+.iftp-llms-contract__config .iftp-llms-methods {
+	width: auto;
+	min-width: 560px;
+}
+
 #iftp-llms-methods[aria-busy="true"] .iftp-llms-methods-wrap {
 	opacity: 0.5;
 	pointer-events: none;
 }
 
+/* Core's `.form-table th { width: 200px }` reaches our nested header cells too. */
+.form-table .iftp-llms-methods th {
+	width: auto;
+	white-space: nowrap;
+}
+
+/* A fixed height, so rows with a button line up with the rest. */
 .iftp-llms-methods td {
+	height: 36px;
 	vertical-align: middle;
 }
 
-/* Enabled + Default shrink to their single control and read as one group, closed off by a divider. */
+/* No percentage width: in an auto-width table it stretches the table back to 100%. */
 .iftp-llms-methods .iftp-llms-methods__control {
-	width: 1%;
 	white-space: nowrap;
 	text-align: center;
 }
 
-.iftp-llms-methods .iftp-llms-methods__control--enabled {
-	border-right: 1px solid var(--iftp-llms-border);
+.iftp-llms-methods th:last-child,
+.iftp-llms-methods td:last-child {
+	padding-right: 20px;
 }
 
 .iftp-llms-methods__method {
 	display: flex;
 	align-items: center;
 	gap: 12px;
+	white-space: nowrap;
 }
 
 /* A fixed slot, so every label starts at the same x whatever the logo's shape. */
@@ -248,15 +264,25 @@
 
 .iftp-llms-methods__status {
 	color: var(--iftp-llms-text-muted);
-	font-style: italic;
+	font-size: 13px;
 	white-space: nowrap;
 }
 
-/* Unprovisioned rows dim their label and status, never the Request activation button. */
-.iftp-llms-methods__row--off .iftp-llms-methods__enabled,
-.iftp-llms-methods__row--off .iftp-llms-methods__method,
-.iftp-llms-methods__row--off .iftp-llms-methods__status {
-	opacity: 0.5;
+/* The host's small button is still sized for a page footer; ours sits inside a table row. */
+.iftp-llms-methods .iftp-llms-methods__activation .llms-button-secondary {
+	padding: 4px 12px;
+	font-size: 13px;
+	line-height: 20px;
+}
+
+/* Unprovisioned rows grey out the method, never the Request activation button. */
+.iftp-llms-methods__row--off .iftp-llms-methods__label {
+	color: var(--iftp-llms-text-muted);
+}
+
+.iftp-llms-methods__row--off .iftp-llms-methods__logo {
+	opacity: 0.6;
+	filter: grayscale(1);
 }
 
 /* Default-method star. */
@@ -562,10 +588,6 @@ html:has(.iftp-llms-modal:not([hidden])) {
 	.form-table .iftp-llms-methods td {
 		display: table-cell;
 		padding: 8px;
-	}
-
-	.form-table .iftp-llms-methods .iftp-llms-methods__control {
-		width: 1%;
 	}
 
 	.iftp-llms-methods__logo-slot {

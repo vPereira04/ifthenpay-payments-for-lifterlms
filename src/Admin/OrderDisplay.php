@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Ifthenpay\LifterLMS\Admin;
 
 use Ifthenpay\LifterLMS\Api\IfthenpayClient;
+use Ifthenpay\LifterLMS\Gateway\IfthenpayGateway;
 use Ifthenpay\LifterLMS\Methods;
 use Ifthenpay\LifterLMS\Payments\PaymentAttempts;
 use Ifthenpay\LifterLMS\Plugin;
@@ -20,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Adds an ifthenpay box to the `llms_order` edit screen (the latest attempt and its link), and a "Pay now" button to the student's My Account › View order page for
- * pending ifthenpay orders. Pay now reuses a still-valid link, or creates a fresh one.
+ * pending ifthenpay orders. Pay now reuses a still-valid link, or creates a fresh one when the student has none live for that course.
  *
  * @phpstan-import-type Attempt from PaymentAttempts
  */
@@ -29,7 +30,12 @@ final class OrderDisplay {
 	private const ORDER_POST_TYPE = 'llms_order';
 	private const PENDING_STATUS  = 'llms-pending';
 
-	private const ADMIN_HANDLE = 'iftp-llms-order-admin';
+	private const ADMIN_HANDLE  = 'iftp-llms-order-admin';
+	private const STATUS_HANDLE = 'iftp-llms-order-status';
+
+	// The status poll on My Account › View order.
+	public const STATUS_ACTION        = 'iftp_llms_order_status';
+	private const STATUS_NONCE_ACTION = 'iftp_llms_order_status_';
 
 	// The Pay now form's fields.
 	private const PAY_NOW_FIELD = 'iftp_llms_pay_now';
@@ -43,6 +49,9 @@ final class OrderDisplay {
 		if ( is_admin() ) {
 			add_action( 'lifterlms_order_meta_box_after_payment_information', array( $this, 'render_admin_box' ), 10, 1 );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin' ), 10, 1 );
+
+			// is_admin() covers admin-ajax, where the View order page polls. Students only, so no nopriv.
+			add_action( 'wp_ajax_' . self::STATUS_ACTION, array( $this, 'order_status' ) );
 
 			return;
 		}
@@ -185,19 +194,58 @@ final class OrderDisplay {
 	 * @param mixed $order The order being viewed.
 	 */
 	public function render_pay_now( $order ): void {
-		if ( ! $order instanceof \LLMS_Order || ! self::can_pay_now( $order ) || ! Plugin::instance()->settings()->is_configured() ) {
+		if ( ! $order instanceof \LLMS_Order || ! self::can_pay_now( $order ) ) {
 			return;
 		}
 
 		$order_id = (int) $order->get( 'id' );
+
+		// Before the configured check: a payment already under way still confirms after a disconnect.
+		self::watch_status( $order_id );
+
+		if ( ! Plugin::instance()->settings()->is_configured() ) {
+			return;
+		}
 		?>
 		<form class="iftp-llms-pay-now" method="post" action="<?php echo esc_url( (string) $order->get_view_link() ); ?>">
-			<p class="iftp-llms-pay-now__hint"><?php esc_html_e( 'This order is waiting for payment. Continue to ifthenpay to pay for it.', 'ifthenpay-payments-for-lifterlms' ); ?></p>
+			<p class="iftp-llms-pay-now__hint"><?php esc_html_e( 'This order is waiting for payment. Continue to ifthenpay to pay for it. This page updates on its own once ifthenpay confirms the payment.', 'ifthenpay-payments-for-lifterlms' ); ?></p>
 			<input type="hidden" name="<?php echo esc_attr( self::PAY_NOW_FIELD ); ?>" value="<?php echo esc_attr( (string) $order_id ); ?>" />
 			<?php wp_nonce_field( self::NONCE_ACTION . $order_id, self::NONCE_FIELD ); ?>
 			<button type="submit" class="llms-button-primary iftp-llms-pay-now__button"><?php esc_html_e( 'Pay now', 'ifthenpay-payments-for-lifterlms' ); ?></button>
 		</form>
 		<?php
+	}
+
+	/**
+	 * Outputs the poll's config and queues its script, which reloads the page once the order leaves pending.
+	 *
+	 * @param int $order_id The pending order.
+	 */
+	private static function watch_status( int $order_id ): void {
+		?>
+		<span hidden data-iftp-llms-status="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-iftp-llms-action="<?php echo esc_attr( self::STATUS_ACTION ); ?>" data-iftp-llms-order="<?php echo esc_attr( (string) $order_id ); ?>" data-iftp-llms-nonce="<?php echo esc_attr( wp_create_nonce( self::STATUS_NONCE_ACTION . $order_id ) ); ?>"></span>
+		<?php
+		// Static like the copy script: everything it needs is on the span above.
+		wp_register_script( self::STATUS_HANDLE, false, array(), IFTP_LLMS_VERSION, true );
+		wp_enqueue_script( self::STATUS_HANDLE );
+		wp_add_inline_script( self::STATUS_HANDLE, self::status_script() );
+	}
+
+	/**
+	 * Answers the View order poll: whether the student's own order has left pending.
+	 */
+	public function order_status(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the nonce is per order, so I need the id to check it.
+		$order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+		$nonce    = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+		$order    = wp_verify_nonce( $nonce, self::STATUS_NONCE_ACTION . $order_id ) ? Plugin::get_order( $order_id ) : null;
+		$user_id  = get_current_user_id();
+
+		if ( null === $order || $user_id < 1 || (int) $order->get( 'user_id' ) !== $user_id ) {
+			wp_send_json_error( null, 403 );
+		}
+
+		wp_send_json_success( array( 'settled' => self::PENDING_STATUS !== $order->get( 'status' ) ) );
 	}
 
 	/**
@@ -220,11 +268,15 @@ final class OrderDisplay {
 			// Back to the order only when it's theirs; anyone else lands on the dashboard.
 			$own = null !== $order && get_current_user_id() > 0 && (int) $order->get( 'user_id' ) === get_current_user_id();
 
-			self::fail( $own ? $order : null, __( "This order can't be paid right now. Reload the page and try again.", 'ifthenpay-payments-for-lifterlms' ) );
+			self::fail( $own ? $order : null, esc_html__( "This order can't be paid right now. Reload the page and try again.", 'ifthenpay-payments-for-lifterlms' ) );
 		}
 
 		$gateway = Plugin::gateway();
-		$link    = null !== $gateway ? $gateway->create_link_for_order( $order, true ) : new \WP_Error( 'iftp_llms_no_gateway', '' );
+		$link    = null !== $gateway ? $gateway->create_link_for_order( $order ) : new \WP_Error( 'iftp_llms_no_gateway', '' );
+
+		if ( is_wp_error( $link ) && IfthenpayGateway::ERROR_IN_PROGRESS === $link->get_error_code() ) {
+			self::fail( $order, IfthenpayGateway::in_progress_notice( $link ) );
+		}
 
 		if ( is_wp_error( $link ) || ! IfthenpayClient::is_payment_url( $link['url'] ) ) {
 			if ( is_wp_error( $link ) && '' !== $link->get_error_message() ) {
@@ -237,7 +289,7 @@ final class OrderDisplay {
 				);
 			}
 
-			self::fail( $order, __( "We couldn't start your ifthenpay payment. Please try again in a moment.", 'ifthenpay-payments-for-lifterlms' ) );
+			self::fail( $order, esc_html__( "We couldn't start your ifthenpay payment. Please try again in a moment.", 'ifthenpay-payments-for-lifterlms' ) );
 		}
 
 		self::redirect_to_payment( $link['url'] );
@@ -261,11 +313,11 @@ final class OrderDisplay {
 	 * Back to the order (or the dashboard) with an error notice.
 	 *
 	 * @param \LLMS_Order|null $order   The order, when known.
-	 * @param string           $message The notice.
+	 * @param string           $message The notice, already escaped (LifterLMS prints it as is).
 	 * @return never
 	 */
 	private static function fail( ?\LLMS_Order $order, string $message ): void {
-		llms_add_notice( esc_html( $message ), 'error' );
+		llms_add_notice( $message, 'error' );
 
 		$url = null !== $order ? (string) $order->get_view_link() : '';
 
@@ -313,6 +365,90 @@ final class OrderDisplay {
 		);
 
 		return $labels[ $status ] ?? ucfirst( $status );
+	}
+
+	/**
+	 * The View order poll. Every 5s for two minutes, then every 15s, for up to an hour; paused while the tab is hidden.
+	 */
+	private static function status_script(): string {
+		return <<<'JS'
+( function () {
+	'use strict';
+
+	var el = document.querySelector( '[data-iftp-llms-status]' );
+	var url;
+	var body;
+	var started = Date.now();
+	var timer = null;
+	var busy = false;
+	var stopped = false;
+
+	if ( ! el || ! window.fetch || ! window.FormData ) {
+		return;
+	}
+
+	url = el.getAttribute( 'data-iftp-llms-status' );
+	body = new FormData();
+	body.append( 'action', el.getAttribute( 'data-iftp-llms-action' ) || '' );
+	body.append( 'order_id', el.getAttribute( 'data-iftp-llms-order' ) || '' );
+	body.append( 'nonce', el.getAttribute( 'data-iftp-llms-nonce' ) || '' );
+
+	function schedule() {
+		var elapsed = Date.now() - started;
+
+		window.clearTimeout( timer );
+
+		if ( stopped || elapsed > 3600000 ) {
+			return;
+		}
+
+		timer = window.setTimeout( check, elapsed < 120000 ? 5000 : 15000 );
+	}
+
+	function check() {
+		// A hidden tab waits; visibilitychange picks it back up.
+		if ( busy || stopped || document.hidden ) {
+			return;
+		}
+
+		busy = true;
+
+		window.fetch( url, { method: 'POST', body: body, credentials: 'same-origin' } )
+			.then( function ( response ) {
+				return response.json();
+			} )
+			.then( function ( res ) {
+				busy = false;
+
+				// A refused poll (bad nonce, not their order) won't get better by asking again.
+				if ( ! res || ! res.success ) {
+					stopped = true;
+					return;
+				}
+
+				if ( res.data && res.data.settled ) {
+					stopped = true;
+					window.location.reload();
+					return;
+				}
+
+				schedule();
+			} )
+			.catch( function () {
+				busy = false;
+				schedule();
+			} );
+	}
+
+	document.addEventListener( 'visibilitychange', function () {
+		if ( ! document.hidden ) {
+			check();
+		}
+	} );
+
+	schedule();
+}() );
+JS;
 	}
 
 	/**

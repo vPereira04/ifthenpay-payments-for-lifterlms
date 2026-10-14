@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace Ifthenpay\LifterLMS\Gateway;
 
-use Ifthenpay\LifterLMS\Api\IfthenpayClient;
 use Ifthenpay\LifterLMS\Api\IfthenpayPayload;
 use Ifthenpay\LifterLMS\Methods;
 use Ifthenpay\LifterLMS\Payments\PaymentAttempts;
@@ -24,6 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * page; the callback (Webhook\WebhookController) records the LifterLMS transaction once paid.
  * One-off plans only, and refunds stay LifterLMS's manual ones. Each link is an attempt stored
  * on the order (Payments\PaymentAttempts); LifterLMS's own order screens are the record.
+ * A student has at most one live link per course: ifthenpay can't revoke a link, so a second one could be paid too.
  *
  * @phpstan-import-type Attempt from PaymentAttempts
  */
@@ -35,6 +35,13 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 	public const CONTRACT_FIELD = 'iftp_llms_contract';
 
 	/**
+	 * Error code for "this student already has a live link for this course". Its data holds the link's `url`.
+	 */
+	public const ERROR_IN_PROGRESS = 'iftp_llms_payment_in_progress';
+
+	private const CHECKOUT_STYLE_HANDLE = 'iftp-llms-checkout';
+
+	/**
 	 * Sets up the gateway. LifterLMS instantiates it once, on init, from the class name.
 	 */
 	public function __construct() {
@@ -42,7 +49,7 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 		$this->admin_title       = 'ifthenpay';
 		$this->admin_description = __( 'Take one-off payments with ifthenpay Pay by Link: Multibanco, MB WAY, card, Apple Pay, Google Pay and more. Orders complete when ifthenpay confirms the payment.', 'ifthenpay-payments-for-lifterlms' );
 		$this->title             = 'ifthenpay';
-		$this->description       = __( 'Pay with Multibanco, MB WAY, card, Apple Pay or Google Pay.', 'ifthenpay-payments-for-lifterlms' );
+		$this->description       = __( 'Pay with ifthenpay.', 'ifthenpay-payments-for-lifterlms' );
 
 		$this->supports = array(
 			'checkout_fields'           => false,
@@ -62,13 +69,15 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 		);
 
 		add_filter( 'llms_get_gateway_settings_fields', array( $this, 'settings_fields' ), 10, 2 );
+		add_filter( 'llms_field_settings', array( $this, 'checkout_label' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_styles' ) );
 
 		// The panel saves through our own AJAX, so LifterLMS's form submit stores nothing for it.
 		add_filter( 'llms_update_option_' . self::CONTRACT_FIELD, '__return_null' );
 	}
 
 	/**
-	 * Appends our settings panel to the ifthenpay section, after LifterLMS's own fields.
+	 * Adds the logo toggle after Description, and our settings panel after LifterLMS's own fields.
 	 * Rendering is `lifterlms_admin_field_iftp_llms_contract` (Admin\SettingsPanel).
 	 *
 	 * @param mixed  $fields     LifterLMS's settings fields for the section.
@@ -79,6 +88,20 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 		if ( $this->id !== $gateway_id || ! is_array( $fields ) ) {
 			return $fields;
 		}
+
+		$logo_field = array(
+			'id'           => $this->get_option_name( 'show_logo' ),
+			'desc'         => __( 'Show the ifthenpay logo at checkout', 'ifthenpay-payments-for-lifterlms' ),
+			'desc_tooltip' => __( 'When off, students only see the payment method logos.', 'ifthenpay-payments-for-lifterlms' ),
+			'default'      => 'yes',
+			'title'        => __( 'Checkout logo', 'ifthenpay-payments-for-lifterlms' ),
+			'type'         => 'checkbox',
+		);
+
+		$after = array_search( $this->get_option_name( 'description' ), array_column( $fields, 'id' ), true );
+		$at    = false === $after ? count( $fields ) : (int) $after + 1;
+
+		array_splice( $fields, $at, 0, array( $logo_field ) );
 
 		$fields[] = array(
 			'id'   => self::CONTRACT_FIELD,
@@ -109,6 +132,64 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_icon() {
+		$html = $this->method_logos_html();
+
+		if ( '' !== $html ) {
+			$class = $this->shows_logo() ? 'iftp-llms-method-logos iftp-llms-method-logos--divided' : 'iftp-llms-method-logos';
+			$html  = '<span class="' . esc_attr( $class ) . '">' . $html . '</span>';
+		}
+
+		return apply_filters( 'llms_get_gateway_icon', $html, $this->id );
+	}
+
+	/**
+	 * Swaps our checkout radio's text label for the ifthenpay logo, or hides it when the logo is off.
+	 * Only the label: get_title() stays plain text for emails and order screens.
+	 *
+	 * @param mixed $settings LifterLMS's form field settings.
+	 * @return mixed
+	 */
+	public function checkout_label( $settings ) {
+		$field_id = 'llms_payment_gateway_' . $this->id;
+
+		if ( ! is_array( $settings ) || ( $settings['id'] ?? '' ) !== $field_id ) {
+			return $settings;
+		}
+
+		$title = (string) $this->get_title();
+
+		if ( $this->shows_logo() ) {
+			$settings['label'] = '<img class="iftp-llms-brand-logo" src="' . esc_url( IFTP_LLMS_URL . 'assets/img/icon-normal.svg' ) . '" alt="' . esc_attr( $title ) . '" width="22" height="22">';
+		} elseif ( '' !== $this->method_logos_html() ) {
+			// Logo off: the method logos speak for themselves, but screen readers still need a name.
+			$settings['label'] = '<span class="iftp-llms-visually-hidden">' . esc_html( $title ) . '</span>';
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * The checkout styles, on the checkout page only.
+	 */
+	public function enqueue_checkout_styles(): void {
+		if ( ! function_exists( 'is_llms_checkout' ) || ! is_llms_checkout() ) {
+			return;
+		}
+
+		wp_enqueue_style( self::CHECKOUT_STYLE_HANDLE, IFTP_LLMS_URL . 'assets/css/checkout.css', array(), Plugin::asset_version( 'assets/css/checkout.css' ) );
+	}
+
+	/**
+	 * Whether checkout shows the ifthenpay logo. On until someone unticks it.
+	 */
+	private function shows_logo(): bool {
+		return 'no' !== $this->get_option( 'show_logo' );
+	}
+
+	/**
+	 * One <img> per enabled method that has a logo.
+	 */
+	private function method_logos_html(): string {
 		$html = '';
 
 		foreach ( Plugin::instance()->settings()->enabled_methods() as $method ) {
@@ -116,14 +197,11 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 				continue;
 			}
 
-			$html .= '<img class="iftp-llms-method-logo" src="' . esc_url( $method['logo'] ) . '" alt="' . esc_attr( Methods::label( $method['entity'] ) ) . '" height="24" loading="lazy" decoding="async">';
+			$class = 'iftp-llms-method-logo iftp-llms-method-logo--' . sanitize_html_class( strtolower( $method['entity'] ) );
+			$html .= '<img class="' . esc_attr( $class ) . '" src="' . esc_url( $method['logo'] ) . '" alt="' . esc_attr( Methods::label( $method['entity'] ) ) . '" height="24" loading="lazy" decoding="async">';
 		}
 
-		if ( '' !== $html ) {
-			$html = '<span class="iftp-llms-method-logos">' . $html . '</span>';
-		}
-
-		return apply_filters( 'llms_get_gateway_icon', $html, $this->id );
+		return $html;
 	}
 
 	/**
@@ -164,7 +242,13 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 			return;
 		}
 
-		$link = $this->create_link_for_order( $order, false );
+		$link = $this->create_link_for_order( $order );
+
+		if ( is_wp_error( $link ) && self::ERROR_IN_PROGRESS === $link->get_error_code() ) {
+			llms_add_notice( self::in_progress_notice( $link ), 'error' );
+
+			$this->redirect_back( $plan );
+		}
 
 		if ( is_wp_error( $link ) ) {
 			$this->log( 'ifthenpay payment link failed', $link->get_error_code(), $link->get_error_message(), $order->get( 'id' ) );
@@ -186,43 +270,88 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 	}
 
 	/**
-	 * A payment link for an order: the current attempt's link when `$reuse` is on and it's still payable,
-	 * else a fresh attempt (older pending attempts are superseded). Checkout always asks for a fresh link;
-	 * "Pay now" reuses.
+	 * A payment link for an order, used by checkout and "Pay now" alike. The order's live link comes back
+	 * as is while the amount still matches; any other live link for the same student and course is an
+	 * ERROR_IN_PROGRESS. Only with none live is a fresh attempt created.
 	 *
 	 * @param \LLMS_Order $order The pending order.
-	 * @param bool        $reuse Whether an existing valid link will do.
 	 * @return array{ref: string, url: string}|\WP_Error
 	 */
-	public function create_link_for_order( \LLMS_Order $order, bool $reuse = true ) {
-		$plugin   = Plugin::instance();
-		$settings = $plugin->settings();
-		$attempts = $plugin->attempts();
+	public function create_link_for_order( \LLMS_Order $order ) {
+		$attempts = Plugin::instance()->attempts();
 		$order_id = (int) $order->get( 'id' );
 
 		if ( 'llms-pending' !== $order->get( 'status' ) ) {
 			return new \WP_Error( 'iftp_llms_order_not_pending', __( 'This order is not waiting for a payment.', 'ifthenpay-payments-for-lifterlms' ) );
 		}
 
-		if ( $reuse ) {
-			$current = $attempts->current( $order_id );
+		$amount = number_format( (float) $order->get_price( 'total', array(), 'float' ), 2, '.', '' );
 
-			if ( null !== $current && self::is_reusable( $current ) ) {
+		if ( (float) $amount <= 0 ) {
+			return new \WP_Error( 'iftp_llms_invalid_amount', __( 'The order total must be above zero.', 'ifthenpay-payments-for-lifterlms' ) );
+		}
+
+		// Two tabs submitting at once would both find no live link, so only one gets to look and create.
+		$user_id = (int) $order->get( 'user_id' );
+		$lock    = $user_id > 0 ? 'link|' . $user_id . '|' . (int) $order->get( 'product_id' ) : 'link|order|' . $order_id;
+
+		if ( ! $attempts->claim( $lock ) ) {
+			return new \WP_Error( self::ERROR_IN_PROGRESS, __( 'Your payment is already being prepared. Please wait a moment and try again.', 'ifthenpay-payments-for-lifterlms' ) );
+		}
+
+		try {
+			$live = $this->live_link( $order, (float) $amount );
+
+			return null !== $live ? $live : $this->start_attempt( $order, $amount );
+		} finally {
+			$attempts->release( $lock );
+		}
+	}
+
+	/**
+	 * The live link the student already has for this course: this order's when the amount still matches,
+	 * an ERROR_IN_PROGRESS for any other, or null when there's none.
+	 *
+	 * @param \LLMS_Order $order  The pending order.
+	 * @param float       $amount What the order asks now.
+	 * @return array{ref: string, url: string}|\WP_Error|null
+	 */
+	private function live_link( \LLMS_Order $order, float $amount ) {
+		$attempts = Plugin::instance()->attempts();
+		$order_id = (int) $order->get( 'id' );
+		$current  = $attempts->current( $order_id );
+
+		if ( null !== $current && PaymentAttempts::is_live( $current ) ) {
+			if ( abs( $current['amount'] - $amount ) < 0.005 ) {
 				return array(
 					'ref' => $current['ref'],
 					'url' => $current['payment_url'],
 				);
 			}
+
+			// The total changed (a coupon, say), but the old link can still be paid.
+			return self::in_progress( $current, $order );
 		}
+
+		$other = $attempts->live_for_product( (int) $order->get( 'user_id' ), (int) $order->get( 'product_id' ), $order_id );
+
+		return null !== $other ? self::in_progress( $other, $order ) : null;
+	}
+
+	/**
+	 * Creates a fresh Pay by Link and records it as the order's current attempt.
+	 *
+	 * @param \LLMS_Order $order  The pending order.
+	 * @param string      $amount The amount, formatted for ifthenpay.
+	 * @return array{ref: string, url: string}|\WP_Error
+	 */
+	private function start_attempt( \LLMS_Order $order, string $amount ) {
+		$plugin   = Plugin::instance();
+		$settings = $plugin->settings();
+		$order_id = (int) $order->get( 'id' );
 
 		if ( ! $settings->is_configured() ) {
 			return new \WP_Error( 'iftp_llms_not_configured', __( 'ifthenpay is not fully configured (Backoffice Key, Gateway Key, an enabled method and a EUR store).', 'ifthenpay-payments-for-lifterlms' ) );
-		}
-
-		$amount = number_format( (float) $order->get_price( 'total', array(), 'float' ), 2, '.', '' );
-
-		if ( (float) $amount <= 0 ) {
-			return new \WP_Error( 'iftp_llms_invalid_amount', __( 'The order total must be above zero.', 'ifthenpay-payments-for-lifterlms' ) );
 		}
 
 		$ref         = PaymentAttempts::new_ref( $order_id );
@@ -248,7 +377,7 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 			return new \WP_Error( 'iftp_llms_link_failed', '' !== $client->get_last_error() ? $client->get_last_error() : __( 'ifthenpay did not return a payment link.', 'ifthenpay-payments-for-lifterlms' ) );
 		}
 
-		$attempts->start( $order_id, $ref, $gateway_key, (float) $amount, $url, PaymentAttempts::expires_at( $expiry_days ) );
+		$plugin->attempts()->start( $order_id, $ref, $gateway_key, (float) $amount, $url, PaymentAttempts::expires_at( $expiry_days ) );
 
 		$order->add_note(
 			sprintf(
@@ -275,14 +404,50 @@ class IfthenpayGateway extends \LLMS_Payment_Gateway {
 	}
 
 	/**
-	 * Whether an attempt's link can still be paid.
+	 * The notice for an ERROR_IN_PROGRESS, with a link back to the payment that's already open. Escaped,
+	 * since LifterLMS prints notices as is.
 	 *
-	 * @param array<string, mixed> $attempt The attempt.
+	 * @param \WP_Error $error The error.
+	 */
+	public static function in_progress_notice( \WP_Error $error ): string {
+		$data = $error->get_error_data();
+		$url  = is_array( $data ) && isset( $data['url'] ) ? (string) $data['url'] : '';
+		$html = esc_html( $error->get_error_message() );
+
+		if ( '' !== $url ) {
+			$html .= ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Continue payment', 'ifthenpay-payments-for-lifterlms' ) . '</a>';
+		}
+
+		return $html;
+	}
+
+	/**
+	 * An ERROR_IN_PROGRESS for a live attempt.
+	 *
+	 * @param array<string, mixed> $attempt The live attempt.
+	 * @param \LLMS_Order          $order   The order being paid now (same course or membership).
 	 * @phpstan-param Attempt $attempt
 	 */
-	private static function is_reusable( array $attempt ): bool {
-		return PaymentAttempts::STATUS_PENDING === PaymentAttempts::display_status( $attempt )
-			&& IfthenpayClient::is_payment_url( $attempt['payment_url'] );
+	private static function in_progress( array $attempt, \LLMS_Order $order ): \WP_Error {
+		$product = (string) $order->get( 'product_title' );
+		$product = '' !== $product ? $product : __( 'this course', 'ifthenpay-payments-for-lifterlms' );
+
+		$message = sprintf(
+			/* translators: %s: the course or membership title. */
+			__( 'You already have a payment in progress for %s. Finish it before starting a new one.', 'ifthenpay-payments-for-lifterlms' ),
+			$product
+		);
+
+		if ( $attempt['expires_at'] > 0 ) {
+			$message = sprintf(
+				/* translators: 1: the course or membership title, 2: the date its open payment link expires. */
+				__( 'You already have a payment in progress for %1$s. Finish it, or wait until it expires on %2$s, before starting a new one.', 'ifthenpay-payments-for-lifterlms' ),
+				$product,
+				wp_date( (string) get_option( 'date_format' ), $attempt['expires_at'] )
+			);
+		}
+
+		return new \WP_Error( self::ERROR_IN_PROGRESS, $message, array( 'url' => $attempt['payment_url'] ) );
 	}
 
 	/**

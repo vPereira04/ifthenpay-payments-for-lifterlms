@@ -1,0 +1,50 @@
+/**
+ * The ifthenpay option in LifterLMS's checkout gateway list.
+ */
+
+.iftp-llms-brand-logo {
+	width: 22px;
+	height: 22px;
+	vertical-align: middle;
+}
+
+/* Keeps the icon on the radio's line instead of dropping under it. */
+.llms-payment-gateway-option label:has(.iftp-llms-brand-logo) {
+	white-space: nowrap;
+}
+
+.iftp-llms-method-logos {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	vertical-align: middle;
+}
+
+/* The bar between the ifthenpay icon and the methods. Gone when the icon is off. */
+.iftp-llms-method-logos--divided {
+	padding-left: 10px;
+	border-left: 1px solid #dcdcde;
+}
+
+/* LifterLMS's 5px on top of the row's own gap left the icon too far from the bar. */
+.llms-form-field.llms-payment-gateway-option label + span.llms-description:has(.iftp-llms-method-logos--divided) {
+	margin-left: 0;
+}
+
+/* LifterLMS caps every logo at 22px; the card mark reads too big at that. */
+.llms-form-field.llms-payment-gateway-option .llms-description img.iftp-llms-method-logo--ccard {
+	max-height: 20px;
+}
+
+.iftp-llms-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
